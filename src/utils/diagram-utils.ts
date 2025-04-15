@@ -49,11 +49,21 @@ export const generateEdges = (entities: Entity[]): EntityRelationEdge[] => {
   entities.forEach(entity => {
     if (entity.parent) {
       // Try to find parent entity by externalId first
-      let parentEntity = entities.find(e => e.externalId === entity.parent);
+      let parentEntity = entities.find(e => 
+        e.externalId.toString().trim().toLowerCase() === entity.parent.toString().trim().toLowerCase()
+      );
       
       // If not found by externalId, try by name (for backward compatibility)
       if (!parentEntity) {
+        // Try exact match
         parentEntity = entities.find(e => e.name === entity.parent);
+        
+        // If still no match, try case-insensitive match
+        if (!parentEntity) {
+          parentEntity = entities.find(e => 
+            e.name.toLowerCase() === entity.parent.toLowerCase()
+          );
+        }
       }
       
       if (parentEntity) {
@@ -72,6 +82,8 @@ export const generateEdges = (entities: Entity[]): EntityRelationEdge[] => {
             relationshipType: 'parent-child'
           }
         } as EntityRelationEdge);
+      } else {
+        console.warn(`Could not find parent entity "${entity.parent}" for entity "${entity.name}"`);
       }
     }
   });
