@@ -16,29 +16,31 @@ export const parseEntitiesCSV = (file: File): Promise<Entity[]> => {
       skipEmptyLines: true,
       complete: (results) => {
         try {
-          const data = results.data as EntityCSVRow[];
+          const data = results.data as Record<string, string>[];
           
-          // Validate CSV structure (4 columns for entities)
-          const requiredColumns = ['name', 'description', 'parent', 'system'];
-          const hasRequiredColumns = requiredColumns.every(col => 
-            Object.keys(data[0] || {}).map(key => key.toLowerCase()).includes(col.toLowerCase())
-          );
-          
-          if (!hasRequiredColumns) {
-            reject(new Error('Entity CSV must have name, description, parent, and system columns'));
-            return;
-          }
-          
-          const entities: Entity[] = data.map(row => ({
-            id: uuidv4(),
-            name: row.name,
-            description: row.description,
-            parent: row.parent,
-            system: validateSystemType(row.system)
-          }));
+          // Map the specific template column names to our internal format
+          const entities: Entity[] = data.map(row => {
+            const name = row['Entity Name'] || row['name'] || '';
+            const description = row['Entity Description'] || row['description'] || '';
+            const parent = row['Entity parent'] || row['parent'] || '';
+            const systemRaw = row['Entity System'] || row['system'] || '';
+            
+            if (!name) {
+              console.warn('Entity missing name:', row);
+            }
+            
+            return {
+              id: uuidv4(),
+              name,
+              description,
+              parent,
+              system: validateSystemType(systemRaw)
+            };
+          });
           
           resolve(entities);
         } catch (error) {
+          console.error('Error parsing entity CSV:', error);
           reject(error);
         }
       },
@@ -56,39 +58,40 @@ export const parseAttributesCSV = (file: File, entities: Entity[]): Promise<Attr
       skipEmptyLines: true,
       complete: (results) => {
         try {
-          const data = results.data as AttributeCSVRow[];
+          const data = results.data as Record<string, string>[];
           
-          // Validate CSV structure (5 columns for attributes)
-          const requiredColumns = ['name', 'description', 'primary_key', 'entity', 'system'];
-          const hasRequiredColumns = requiredColumns.every(col => 
-            Object.keys(data[0] || {}).map(key => key.toLowerCase()).includes(col.toLowerCase().replace('_', ''))
-          );
-          
-          if (!hasRequiredColumns) {
-            reject(new Error('Attribute CSV must have name, description, primary_key, entity, and system columns'));
-            return;
-          }
-          
+          // Map the specific template column names to our internal format
           const attributes: Attribute[] = data.map(row => {
+            const name = row['Attribute Name'] || row['name'] || '';
+            const description = row['Attribute Description'] || row['description'] || '';
+            const isPrimaryKeyRaw = row['Primary Key'] || row['primary_key'] || '';
+            const entityName = row['Part Of Entity Name'] || row['entity'] || '';
+            const systemRaw = row['Attribute System'] || row['system'] || '';
+            
             // Find the entity ID that matches the entity name in the CSV
-            const entityId = entities.find(e => e.name === row.entity)?.id;
+            const entityId = entities.find(e => e.name === entityName)?.id;
             
             if (!entityId) {
-              console.warn(`Entity "${row.entity}" not found for attribute "${row.name}"`);
+              console.warn(`Entity "${entityName}" not found for attribute "${name}"`);
             }
+            
+            const isPrimaryKey = isPrimaryKeyRaw.toLowerCase() === 'yes' || 
+                                 isPrimaryKeyRaw === '1' || 
+                                 isPrimaryKeyRaw.toLowerCase() === 'true';
             
             return {
               id: uuidv4(),
-              name: row.name,
-              description: row.description,
-              isPrimaryKey: row.primary_key.toLowerCase() === 'yes' || row.primary_key === '1' || row.primary_key.toLowerCase() === 'true',
+              name,
+              description,
+              isPrimaryKey,
               entityId: entityId || '',
-              system: validateSystemType(row.system)
+              system: validateSystemType(systemRaw)
             };
           });
           
           resolve(attributes);
         } catch (error) {
+          console.error('Error parsing attribute CSV:', error);
           reject(error);
         }
       },
@@ -101,10 +104,10 @@ export const parseAttributesCSV = (file: File, entities: Entity[]): Promise<Attr
 
 export const entitiesToCSV = (entities: Entity[]): string => {
   const data = entities.map(entity => ({
-    name: entity.name,
-    description: entity.description,
-    parent: entity.parent,
-    system: entity.system
+    'Entity Name': entity.name,
+    'Entity Description': entity.description,
+    'Entity parent': entity.parent,
+    'Entity System': entity.system
   }));
   
   return Papa.unparse(data);
@@ -115,11 +118,11 @@ export const attributesToCSV = (attributes: Attribute[], entities: Entity[]): st
     const entityName = entities.find(e => e.id === attr.entityId)?.name || '';
     
     return {
-      name: attr.name,
-      description: attr.description,
-      primary_key: attr.isPrimaryKey ? 'Yes' : 'No',
-      entity: entityName,
-      system: attr.system
+      'Attribute Name': attr.name,
+      'Attribute Description': attr.description,
+      'Primary Key': attr.isPrimaryKey ? 'Yes' : 'No',
+      'Part Of Entity Name': entityName,
+      'Attribute System': attr.system
     };
   });
   

@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { 
@@ -25,6 +26,22 @@ const FileUpload = ({
     try {
       const file = acceptedFiles[0];
       const entities = await parseEntitiesCSV(file);
+      
+      // Validate CSV structure
+      if (entities.length > 0) {
+        // Check for missing required fields
+        const missingFields = entities.some(entity => !entity.name);
+        
+        if (missingFields) {
+          toast({
+            title: "Invalid CSV format",
+            description: "Some entities are missing required fields. Please check your CSV format.",
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+      
       onEntityFileUpload(entities);
       
       toast({
@@ -35,7 +52,7 @@ const FileUpload = ({
       console.error('Error parsing entity CSV:', error);
       toast({
         title: "Upload failed",
-        description: error instanceof Error ? error.message : "Failed to parse entity file",
+        description: error instanceof Error ? error.message : "Failed to parse entity file. Please ensure the CSV has Entity Name, Entity Description, Entity System, and Entity parent columns.",
         variant: "destructive"
       });
     }
@@ -69,6 +86,22 @@ const FileUpload = ({
     try {
       const file = acceptedFiles[0];
       const attributes = await parseAttributesCSV(file, [] as Entity[]);
+      
+      // Validate CSV structure
+      if (attributes.length > 0) {
+        // Check for missing required fields
+        const missingFields = attributes.some(attr => !attr.name);
+        
+        if (missingFields) {
+          toast({
+            title: "Invalid CSV format",
+            description: "Some attributes are missing required fields. Please check your CSV format.",
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+      
       onAttributeFileUpload(attributes);
       
       toast({
@@ -79,7 +112,7 @@ const FileUpload = ({
       console.error('Error parsing attribute CSV:', error);
       toast({
         title: "Upload failed",
-        description: error instanceof Error ? error.message : "Failed to parse attribute file",
+        description: error instanceof Error ? error.message : "Failed to parse attribute file. Please ensure the CSV has Attribute Name, Attribute Description, Primary Key, Part Of Entity Name, and Attribute System columns.",
         variant: "destructive"
       });
     }
@@ -113,7 +146,7 @@ const FileUpload = ({
               : "Drag & drop entity.csv file, or click to select"}
           </p>
           <p className="text-xs text-center text-gray-500 mt-2">
-            CSV must contain: name, description, parent, system
+            CSV must contain: Entity Name, Entity Description, Entity System, Entity parent
           </p>
         </div>
       </div>
@@ -134,7 +167,7 @@ const FileUpload = ({
                 : "Drag & drop attribute.csv file, or click to select"}
           </p>
           <p className="text-xs text-center text-gray-500 mt-2">
-            CSV must contain: name, description, primary_key, entity, system
+            CSV must contain: Attribute Name, Attribute Description, Primary Key, Part Of Entity Name, Attribute System
           </p>
         </div>
       </div>
