@@ -1,4 +1,3 @@
-
 import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
 import { 
@@ -33,17 +32,23 @@ export const parseEntitiesCSV = (file: File): Promise<Entity[]> => {
               console.warn('Entity missing name:', row);
             }
             
+            // Ensure externalId is stored as a string to prevent type mismatches
             return {
               id: uuidv4(),
               name: name.trim(),
               description,
               parent,
               system: validateSystemType(systemRaw),
-              externalId
+              externalId: externalId.toString().trim()
             };
           });
           
-          console.log('Processed entities:', entities);
+          console.log('Processed entities with externalIds:', entities.map(e => ({
+            name: e.name,
+            externalId: e.externalId,
+            type: typeof e.externalId
+          })));
+          
           resolve(entities);
         } catch (error) {
           console.error('Error parsing entity CSV:', error);
@@ -66,7 +71,12 @@ export const parseAttributesCSV = (file: File, entities: Entity[]): Promise<Attr
         try {
           const data = results.data as Record<string, string>[];
           console.log('Raw attribute data from CSV:', data);
-          console.log('Available entities for matching:', entities.map(e => ({ name: e.name, externalId: e.externalId })));
+          console.log('Entities available for matching:', entities.map(e => ({
+            id: e.id,
+            externalId: e.externalId,
+            name: e.name,
+            type: typeof e.externalId
+          })));
           
           // Map the specific template column names to our internal format
           const attributes: Attribute[] = [];
@@ -84,17 +94,34 @@ export const parseAttributesCSV = (file: File, entities: Entity[]): Promise<Attr
             
             const systemRaw = row['Attribute System'] || row['system'] || '';
             
+            console.log(`Looking for entity match for attribute "${name}" with Container Entity ID="${containerEntityId}" or name="${entityName}"`);
+            
             // Find the entity ID that matches the container entity ID in the CSV
-            let entity = entities.find(e => e.externalId === containerEntityId);
+            // Use string comparison to avoid type mismatches
+            let entity = entities.find(e => 
+              e.externalId.toString().trim() === containerEntityId.toString().trim()
+            );
+            
+            if (entity) {
+              console.log(`Found entity match by externalId: ${entity.name} (${entity.externalId})`);
+            }
             
             // If no match by ID, try by name (backwards compatibility)
             if (!entity && entityName) {
               // Try exact match
               entity = entities.find(e => e.name === entityName);
               
+              if (entity) {
+                console.log(`Found entity match by exact name: ${entity.name}`);
+              }
+              
               // If still no match, try case-insensitive matching
               if (!entity) {
                 entity = entities.find(e => e.name.toLowerCase() === entityName.toLowerCase());
+                
+                if (entity) {
+                  console.log(`Found entity match by case-insensitive name: ${entity.name}`);
+                }
               }
             }
             
@@ -102,6 +129,7 @@ export const parseAttributesCSV = (file: File, entities: Entity[]): Promise<Attr
             
             if (!entityId) {
               console.warn(`Entity with ID "${containerEntityId}" or name "${entityName}" not found for attribute "${name}"`);
+              console.warn(`Available entity externalIds:`, entities.map(e => e.externalId));
               continue; // Skip this attribute but keep processing others
             }
             
@@ -122,7 +150,22 @@ export const parseAttributesCSV = (file: File, entities: Entity[]): Promise<Attr
           console.log('Processed attributes:', attributes);
           
           if (attributes.length === 0) {
-            console.warn('No valid attributes found after matching with entities');
+            console.warn('No valid attributes found after matching with entities. Checking all attribute-entity pairs:');
+            
+            for (const row of data) {
+              const containerEntityId = (row['Container Entity ID'] || row['entity_id'] || '').toString().trim();
+              const attributeName = row['Attribute Name'] || row['name'] || '';
+              
+              console.log(`Attribute "${attributeName}" is looking for entity with ID "${containerEntityId}"`);
+              console.log(`Available entity externalIds:`, entities.map(e => e.externalId));
+              
+              // DEBUG: Show exact comparison values for each entity
+              entities.forEach(e => {
+                console.log(`Comparing "${e.externalId}" (${typeof e.externalId}) with "${containerEntityId}" (${typeof containerEntityId}): ${e.externalId === containerEntityId}`);
+                console.log(`Comparing as strings: "${String(e.externalId)}" with "${String(containerEntityId)}": ${String(e.externalId) === String(containerEntityId)}`);
+                console.log(`Comparing trimmed strings: "${String(e.externalId).trim()}" with "${String(containerEntityId).trim()}": ${String(e.externalId).trim() === String(containerEntityId).trim()}`);
+              });
+            }
           }
           
           resolve(attributes);
