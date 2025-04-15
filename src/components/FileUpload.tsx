@@ -46,6 +46,13 @@ const FileUpload = ({
           });
           return;
         }
+      } else {
+        toast({
+          title: "Empty file",
+          description: "No entities found in the uploaded file.",
+          variant: "destructive"
+        });
+        return;
       }
       
       // Store entities for attribute upload
@@ -98,6 +105,7 @@ const FileUpload = ({
     try {
       const file = acceptedFiles[0];
       console.log('Current entities for attribute mapping:', uploadedEntities);
+      console.log('Number of entities available for matching:', uploadedEntities.length);
       
       // Pass the current entities to the parseAttributesCSV function
       const attributes = await parseAttributesCSV(file, uploadedEntities);
@@ -105,7 +113,7 @@ const FileUpload = ({
       if (attributes.length === 0) {
         toast({
           title: "Warning",
-          description: "No valid attributes found. Make sure the 'Part Of Entity Name' in your CSV matches existing entity names.",
+          description: "No valid attributes found. Make sure the 'Part Of Entity Name' in your CSV matches existing entity names. Check console for details.",
           variant: "destructive"
         });
         return;

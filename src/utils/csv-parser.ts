@@ -17,6 +17,7 @@ export const parseEntitiesCSV = (file: File): Promise<Entity[]> => {
       complete: (results) => {
         try {
           const data = results.data as Record<string, string>[];
+          console.log('Raw entity data from CSV:', data);
           
           // Map the specific template column names to our internal format
           const entities: Entity[] = data.map(row => {
@@ -31,13 +32,14 @@ export const parseEntitiesCSV = (file: File): Promise<Entity[]> => {
             
             return {
               id: uuidv4(),
-              name,
+              name: name.trim(),
               description,
               parent,
               system: validateSystemType(systemRaw)
             };
           });
           
+          console.log('Processed entities:', entities);
           resolve(entities);
         } catch (error) {
           console.error('Error parsing entity CSV:', error);
@@ -59,39 +61,55 @@ export const parseAttributesCSV = (file: File, entities: Entity[]): Promise<Attr
       complete: (results) => {
         try {
           const data = results.data as Record<string, string>[];
-          console.log('Parsed attribute data:', data);
+          console.log('Raw attribute data from CSV:', data);
+          console.log('Available entities for matching:', entities.map(e => e.name));
           
           // Map the specific template column names to our internal format
-          const attributes: Attribute[] = data.map(row => {
+          const attributes: Attribute[] = [];
+          
+          for (const row of data) {
             const name = row['Attribute Name'] || row['name'] || '';
             const description = row['Attribute Description'] || row['description'] || '';
             const isPrimaryKeyRaw = row['Primary Key'] || row['primary_key'] || '';
-            const entityName = row['Part Of Entity Name'] || row['entity'] || '';
+            const entityName = (row['Part Of Entity Name'] || row['entity'] || '').trim();
             const systemRaw = row['Attribute System'] || row['system'] || '';
             
             // Find the entity ID that matches the entity name in the CSV
-            const entity = entities.find(e => e.name === entityName);
+            // Try case-insensitive matching if exact match fails
+            let entity = entities.find(e => e.name === entityName);
+            
+            if (!entity) {
+              // Try case-insensitive matching
+              entity = entities.find(e => e.name.toLowerCase() === entityName.toLowerCase());
+            }
+            
             const entityId = entity?.id;
             
             if (!entityId) {
               console.warn(`Entity "${entityName}" not found for attribute "${name}"`);
+              continue; // Skip this attribute but keep processing others
             }
             
             const isPrimaryKey = isPrimaryKeyRaw.toLowerCase() === 'yes' || 
-                                 isPrimaryKeyRaw === '1' || 
-                                 isPrimaryKeyRaw.toLowerCase() === 'true';
+                               isPrimaryKeyRaw === '1' || 
+                               isPrimaryKeyRaw.toLowerCase() === 'true';
             
-            return {
+            attributes.push({
               id: uuidv4(),
               name,
               description,
               isPrimaryKey,
-              entityId: entityId || '',
+              entityId,
               system: validateSystemType(systemRaw)
-            };
-          }).filter(attr => attr.entityId !== ''); // Only include attributes with valid entity IDs
+            });
+          }
           
           console.log('Processed attributes:', attributes);
+          
+          if (attributes.length === 0) {
+            console.warn('No valid attributes found after matching with entities');
+          }
+          
           resolve(attributes);
         } catch (error) {
           console.error('Error parsing attribute CSV:', error);
