@@ -1,6 +1,6 @@
 
-import { useCallback } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { useCallback, useState } from 'react';
+import { useDropzone, FileRejection, DropEvent } from 'react-dropzone';
 import { 
   FileUploadProps, 
   Entity, 
@@ -18,9 +18,15 @@ const FileUpload = ({
   isAttributesFileUploaded
 }: FileUploadProps) => {
   const { toast } = useToast();
+  // Store entities from the entity dropzone to use in the attribute dropzone
+  const [uploadedEntities, setUploadedEntities] = useState<Entity[]>([]);
   
   // Entities dropzone
-  const onEntityDrop = useCallback(async (acceptedFiles: File[]) => {
+  const onEntityDrop = useCallback(async (
+    acceptedFiles: File[], 
+    fileRejections: FileRejection[], 
+    event: DropEvent
+  ) => {
     if (acceptedFiles.length === 0) return;
     
     try {
@@ -42,6 +48,8 @@ const FileUpload = ({
         }
       }
       
+      // Store entities for attribute upload
+      setUploadedEntities(entities);
       onEntityFileUpload(entities);
       
       toast({
@@ -70,8 +78,12 @@ const FileUpload = ({
     maxFiles: 1
   });
   
-  // Attributes dropzone - this function needs to get the current entities
-  const onAttributeDrop = useCallback(async (acceptedFiles: File[], entities: Entity[]) => {
+  // Attributes dropzone
+  const onAttributeDrop = useCallback(async (
+    acceptedFiles: File[], 
+    fileRejections: FileRejection[], 
+    event: DropEvent
+  ) => {
     if (acceptedFiles.length === 0) return;
     
     if (!isEntitiesFileUploaded) {
@@ -85,10 +97,10 @@ const FileUpload = ({
     
     try {
       const file = acceptedFiles[0];
-      console.log('Current entities for attribute mapping:', entities);
+      console.log('Current entities for attribute mapping:', uploadedEntities);
       
       // Pass the current entities to the parseAttributesCSV function
-      const attributes = await parseAttributesCSV(file, entities);
+      const attributes = await parseAttributesCSV(file, uploadedEntities);
       
       if (attributes.length === 0) {
         toast({
@@ -125,7 +137,7 @@ const FileUpload = ({
         variant: "destructive"
       });
     }
-  }, [isEntitiesFileUploaded, onAttributeFileUpload, toast]);
+  }, [isEntitiesFileUploaded, onAttributeFileUpload, toast, uploadedEntities]);
   
   const { 
     getRootProps: getAttributeRootProps, 
@@ -145,7 +157,7 @@ const FileUpload = ({
         <h3 className="text-lg font-semibold">1. Upload Entities</h3>
         <div 
           {...getEntityRootProps()} 
-          className={`dropzone ${isEntityDragActive ? 'dropzone-active' : ''} ${isEntitiesFileUploaded ? 'border-green-500 bg-green-50' : ''}`}
+          className={`dropzone ${isEntityDragActive ? 'dropzone-active' : ''} ${isEntitiesFileUploaded ? 'border-green-500 bg-green-50' : ''} border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center hover:border-gray-400 transition-colors`}
         >
           <input {...getEntityInputProps()} />
           <UploadCloud className="w-12 h-12 text-gray-400 mb-4" />
@@ -163,11 +175,8 @@ const FileUpload = ({
       <div className="flex flex-col gap-4">
         <h3 className="text-lg font-semibold">2. Upload Attributes</h3>
         <div 
-          {...getAttributeRootProps({
-            // Use a custom version of onDrop that receives the current entities
-            onDrop: (acceptedFiles) => onAttributeDrop(acceptedFiles, []), // We'll have to fix this in the Index.tsx component
-          })} 
-          className={`dropzone ${isAttributeDragActive ? 'dropzone-active' : ''} ${!isEntitiesFileUploaded ? 'opacity-50 cursor-not-allowed' : ''} ${isAttributesFileUploaded ? 'border-green-500 bg-green-50' : ''}`}
+          {...getAttributeRootProps()} 
+          className={`dropzone ${isAttributeDragActive ? 'dropzone-active' : ''} ${!isEntitiesFileUploaded ? 'opacity-50 cursor-not-allowed' : ''} ${isAttributesFileUploaded ? 'border-green-500 bg-green-50' : ''} border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center hover:border-gray-400 transition-colors`}
         >
           <input {...getAttributeInputProps()} disabled={!isEntitiesFileUploaded} />
           <UploadCloud className="w-12 h-12 text-gray-400 mb-4" />
