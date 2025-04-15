@@ -1,4 +1,3 @@
-
 import { useCallback, useState } from 'react';
 import { useDropzone, FileRejection, DropEvent } from 'react-dropzone';
 import { 
@@ -32,6 +31,13 @@ const FileUpload = ({
     try {
       const file = acceptedFiles[0];
       const entities = await parseEntitiesCSV(file);
+      
+      // Log entity external IDs for debugging
+      console.log('Loaded entities with externalIds:', entities.map(e => ({
+        name: e.name, 
+        externalId: e.externalId,
+        type: typeof e.externalId
+      })));
       
       // Validate CSV structure
       if (entities.length > 0) {
@@ -106,6 +112,15 @@ const FileUpload = ({
       const file = acceptedFiles[0];
       console.log('Current entities for attribute mapping:', uploadedEntities);
       console.log('Number of entities available for matching:', uploadedEntities.length);
+      console.log('Entity IDs available:', uploadedEntities.map(e => e.externalId));
+      
+      // Read first few lines of CSV for debugging
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target.result as string;
+        console.log('CSV first 500 chars:', text.substring(0, 500));
+      };
+      reader.readAsText(file);
       
       // Pass the current entities to the parseAttributesCSV function
       const attributes = await parseAttributesCSV(file, uploadedEntities);
@@ -113,7 +128,7 @@ const FileUpload = ({
       if (attributes.length === 0) {
         toast({
           title: "Warning",
-          description: "No valid attributes found. Make sure the 'Container Entity ID' in your CSV matches existing Entity IDs from the entity file. Check console for details.",
+          description: "No valid attributes found. Make sure the 'Container Entity ID' in your CSV matches existing Entity IDs from the entity file. Check console for detailed information.",
           variant: "destructive"
         });
         return;
