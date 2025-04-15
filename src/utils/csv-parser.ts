@@ -33,13 +33,14 @@ export const parseEntitiesCSV = (file: File): Promise<Entity[]> => {
             }
             
             // Ensure externalId is stored as a string to prevent type mismatches
+            // If no externalId is provided, use the name as a fallback
             return {
               id: uuidv4(),
               name: name.trim(),
               description,
               parent,
               system: validateSystemType(systemRaw),
-              externalId: externalId.toString().trim()
+              externalId: externalId ? externalId.toString().trim() : name.trim()
             };
           });
           
@@ -71,15 +72,20 @@ export const parseAttributesCSV = (file: File, entities: Entity[]): Promise<Attr
         try {
           const data = results.data as Record<string, string>[];
           console.log('Raw attribute data from CSV:', data);
-          console.log('Entities available for matching:', entities.map(e => ({
-            id: e.id,
-            externalId: e.externalId,
-            name: e.name,
-            type: typeof e.externalId
-          })));
+          
+          // Get the header row to check which columns are available
+          const headers = results.meta.fields || [];
+          console.log('CSV Headers:', headers);
+          
+          // Check if we have Container Entity ID or Part Of Entity Name
+          const hasContainerEntityId = headers.includes('Container Entity ID') || headers.includes('entity_id');
+          const hasEntityName = headers.includes('Part Of Entity Name') || headers.includes('entity');
+          
+          console.log(`CSV has Container Entity ID: ${hasContainerEntityId}, has Part Of Entity Name: ${hasEntityName}`);
           
           // Map the specific template column names to our internal format
           const attributes: Attribute[] = [];
+          const matchingFailures: Array<{name: string, lookingFor: string}> = [];
           
           for (const row of data) {
             const name = row['Attribute Name'] || row['name'] || '';
@@ -97,30 +103,42 @@ export const parseAttributesCSV = (file: File, entities: Entity[]): Promise<Attr
             console.log(`Looking for entity match for attribute "${name}" with Container Entity ID="${containerEntityId}" or name="${entityName}"`);
             
             // Find the entity ID that matches the container entity ID in the CSV
-            // Use string comparison to avoid type mismatches
-            let entity = entities.find(e => 
-              e.externalId.toString().trim() === containerEntityId.toString().trim()
-            );
+            let entity = null;
             
-            if (entity) {
-              console.log(`Found entity match by externalId: ${entity.name} (${entity.externalId})`);
+            // Try all possible matching strategies
+            if (containerEntityId) {
+              // Match by externalId (case-insensitive)
+              entity = entities.find(e => 
+                e.externalId.toString().trim().toLowerCase() === containerEntityId.toString().trim().toLowerCase()
+              );
+              
+              if (entity) {
+                console.log(`Found entity match by externalId: ${entity.name} (${entity.externalId})`);
+              }
             }
             
-            // If no match by ID, try by name (backwards compatibility)
+            // If no match by ID, try by name
             if (!entity && entityName) {
               // Try exact match
               entity = entities.find(e => e.name === entityName);
               
               if (entity) {
                 console.log(`Found entity match by exact name: ${entity.name}`);
-              }
-              
-              // If still no match, try case-insensitive matching
-              if (!entity) {
+              } else {
+                // Try case-insensitive matching
                 entity = entities.find(e => e.name.toLowerCase() === entityName.toLowerCase());
                 
                 if (entity) {
                   console.log(`Found entity match by case-insensitive name: ${entity.name}`);
+                }
+                
+                // Try by externalId matching the name (sometimes people put ID in name field)
+                if (!entity) {
+                  entity = entities.find(e => e.externalId.toLowerCase() === entityName.toLowerCase());
+                  
+                  if (entity) {
+                    console.log(`Found entity match by name matching externalId: ${entity.name} (${entity.externalId})`);
+                  }
                 }
               }
             }
@@ -129,7 +147,10 @@ export const parseAttributesCSV = (file: File, entities: Entity[]): Promise<Attr
             
             if (!entityId) {
               console.warn(`Entity with ID "${containerEntityId}" or name "${entityName}" not found for attribute "${name}"`);
-              console.warn(`Available entity externalIds:`, entities.map(e => e.externalId));
+              matchingFailures.push({
+                name: name,
+                lookingFor: containerEntityId || entityName
+              });
               continue; // Skip this attribute but keep processing others
             }
             
@@ -152,20 +173,20 @@ export const parseAttributesCSV = (file: File, entities: Entity[]): Promise<Attr
           if (attributes.length === 0) {
             console.warn('No valid attributes found after matching with entities. Checking all attribute-entity pairs:');
             
-            for (const row of data) {
-              const containerEntityId = (row['Container Entity ID'] || row['entity_id'] || '').toString().trim();
-              const attributeName = row['Attribute Name'] || row['name'] || '';
-              
-              console.log(`Attribute "${attributeName}" is looking for entity with ID "${containerEntityId}"`);
-              console.log(`Available entity externalIds:`, entities.map(e => e.externalId));
-              
-              // DEBUG: Show exact comparison values for each entity
-              entities.forEach(e => {
-                console.log(`Comparing "${e.externalId}" (${typeof e.externalId}) with "${containerEntityId}" (${typeof containerEntityId}): ${e.externalId === containerEntityId}`);
-                console.log(`Comparing as strings: "${String(e.externalId)}" with "${String(containerEntityId)}": ${String(e.externalId) === String(containerEntityId)}`);
-                console.log(`Comparing trimmed strings: "${String(e.externalId).trim()}" with "${String(containerEntityId).trim()}": ${String(e.externalId).trim() === String(containerEntityId).trim()}`);
-              });
+            console.log('Failed matches:', matchingFailures);
+            
+            // Construct appropriate error message based on the CSV structure
+            let errorMessage = '';
+            
+            if (hasContainerEntityId && !hasEntityName) {
+              errorMessage = 'No valid attributes found. Make sure the "Container Entity ID" in your CSV matches existing Entity IDs from the entity file.';
+            } else if (!hasContainerEntityId && hasEntityName) {
+              errorMessage = 'No valid attributes found. Make sure the "Part Of Entity Name" in your CSV matches the existing entity names from the entity file.';
+            } else {
+              errorMessage = 'No valid attributes found. Your attributes must reference existing entities either by "Container Entity ID" or "Part Of Entity Name".';
             }
+            
+            reject(new Error(errorMessage));
           }
           
           resolve(attributes);
@@ -203,6 +224,7 @@ export const attributesToCSV = (attributes: Attribute[], entities: Entity[]): st
       'Attribute Description': attr.description,
       'Primary Key': attr.isPrimaryKey ? 'Yes' : 'No',
       'Container Entity ID': entityExternalId,
+      'Part Of Entity Name': entity?.name || '', // Added this field for clarity
       'Attribute System': attr.system
     };
   });
