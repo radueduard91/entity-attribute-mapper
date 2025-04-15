@@ -189,7 +189,7 @@ const EntityDiagram = ({
         });
         
         // Apply edge changes before proceeding
-        onEdgesChange(changes);
+        onEdgesChange(changes as any); // Type assertion to fix the type error
         
         // Update edges based on the new entity relationships
         const newEdges = edges.filter(edge => !removedEdges.includes(edge.id));
@@ -197,7 +197,7 @@ const EntityDiagram = ({
         updateEdgesChange(newEdges);
       } else {
         // Normal edge changes (not removal)
-        onEdgesChange(changes);
+        onEdgesChange(changes as any); // Type assertion to fix the type error
       }
     },
     [entities, initialEdges, edges, setEdges, onEdgesChange, updateEdgesChange]

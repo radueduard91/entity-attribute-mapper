@@ -55,7 +55,15 @@ const EntityForm = ({
   });
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
-    onSubmit(values);
+    // Explicitly convert to required EntityFormValues type to satisfy TypeScript
+    const formValues = {
+      name: values.name,
+      description: values.description,
+      parent: values.parent,
+      system: values.system as SystemType,
+    };
+    
+    onSubmit(formValues);
     onOpenChange(false);
     form.reset();
   };
