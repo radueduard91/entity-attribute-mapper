@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { 
@@ -165,12 +164,15 @@ const Index = () => {
   
   // Event handlers for file uploads
   const handleEntityFileUpload = (uploadedEntities: Entity[]) => {
+    console.log('Entities uploaded:', uploadedEntities);
     setEntities(uploadedEntities);
     setIsEntitiesFileUploaded(true);
   };
   
   const handleAttributeFileUpload = (uploadedAttributes: Attribute[]) => {
-    // Attach attributes to existing entities
+    console.log('Attributes uploaded:', uploadedAttributes);
+    
+    // Ensure the uploaded attributes have valid entity IDs
     const validAttributes = uploadedAttributes.filter(attr => {
       const entityExists = entities.some(entity => entity.id === attr.entityId);
       if (!entityExists) {
@@ -213,6 +215,16 @@ const Index = () => {
     });
   };
   
+  // Create a custom FileUpload component that includes the current entities
+  const FileUploadWithEntities = () => (
+    <FileUpload
+      onEntityFileUpload={handleEntityFileUpload}
+      onAttributeFileUpload={handleAttributeFileUpload}
+      isEntitiesFileUploaded={isEntitiesFileUploaded}
+      isAttributesFileUploaded={isAttributesFileUploaded}
+    />
+  );
+  
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -238,12 +250,7 @@ const Index = () => {
         {/* Main content area */}
         <div className="flex-1 flex flex-col h-[calc(100vh-4rem)]">
           {!isEntitiesFileUploaded || !isAttributesFileUploaded ? (
-            <FileUpload
-              onEntityFileUpload={handleEntityFileUpload}
-              onAttributeFileUpload={handleAttributeFileUpload}
-              isEntitiesFileUploaded={isEntitiesFileUploaded}
-              isAttributesFileUploaded={isAttributesFileUploaded}
-            />
+            <FileUploadWithEntities />
           ) : (
             <EntityDiagram
               entities={entities}

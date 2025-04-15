@@ -16,6 +16,8 @@ const EntityNode = memo(({ data, isConnectable }: EntityNodeProps) => {
     onAddAttribute
   } = data;
 
+  console.log(`Rendering entity node ${entity.name} with attributes:`, attributes);
+
   return (
     <>
       <Handle
@@ -59,7 +61,7 @@ const EntityNode = memo(({ data, isConnectable }: EntityNodeProps) => {
         </div>
         
         <div className="entity-attributes">
-          {attributes.length > 0 ? (
+          {attributes && attributes.length > 0 ? (
             attributes.map((attr) => (
               <div key={attr.id} className="entity-attribute hover:bg-gray-50 group">
                 <div className="flex justify-between items-center w-full">

@@ -17,9 +17,13 @@ export const generateNodes = (
   onDeleteAttribute: (attributeId: string) => void,
   onAddAttribute: (entityId: string) => void
 ): EntityNode[] => {
+  console.log('Generating nodes from entities:', entities);
+  console.log('Available attributes:', attributes);
+  
   return entities.map((entity, index) => {
     // Find all attributes for this entity
     const entityAttributes = attributes.filter(attr => attr.entityId === entity.id);
+    console.log(`Entity ${entity.name} (${entity.id}) has ${entityAttributes.length} attributes`);
     
     return {
       id: entity.id,

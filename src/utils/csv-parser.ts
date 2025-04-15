@@ -59,6 +59,7 @@ export const parseAttributesCSV = (file: File, entities: Entity[]): Promise<Attr
       complete: (results) => {
         try {
           const data = results.data as Record<string, string>[];
+          console.log('Parsed attribute data:', data);
           
           // Map the specific template column names to our internal format
           const attributes: Attribute[] = data.map(row => {
@@ -69,7 +70,8 @@ export const parseAttributesCSV = (file: File, entities: Entity[]): Promise<Attr
             const systemRaw = row['Attribute System'] || row['system'] || '';
             
             // Find the entity ID that matches the entity name in the CSV
-            const entityId = entities.find(e => e.name === entityName)?.id;
+            const entity = entities.find(e => e.name === entityName);
+            const entityId = entity?.id;
             
             if (!entityId) {
               console.warn(`Entity "${entityName}" not found for attribute "${name}"`);
@@ -87,8 +89,9 @@ export const parseAttributesCSV = (file: File, entities: Entity[]): Promise<Attr
               entityId: entityId || '',
               system: validateSystemType(systemRaw)
             };
-          });
+          }).filter(attr => attr.entityId !== ''); // Only include attributes with valid entity IDs
           
+          console.log('Processed attributes:', attributes);
           resolve(attributes);
         } catch (error) {
           console.error('Error parsing attribute CSV:', error);

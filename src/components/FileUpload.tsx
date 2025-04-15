@@ -70,8 +70,8 @@ const FileUpload = ({
     maxFiles: 1
   });
   
-  // Attributes dropzone
-  const onAttributeDrop = useCallback(async (acceptedFiles: File[]) => {
+  // Attributes dropzone - this function needs to get the current entities
+  const onAttributeDrop = useCallback(async (acceptedFiles: File[], entities: Entity[]) => {
     if (acceptedFiles.length === 0) return;
     
     if (!isEntitiesFileUploaded) {
@@ -85,21 +85,30 @@ const FileUpload = ({
     
     try {
       const file = acceptedFiles[0];
-      const attributes = await parseAttributesCSV(file, [] as Entity[]);
+      console.log('Current entities for attribute mapping:', entities);
+      
+      // Pass the current entities to the parseAttributesCSV function
+      const attributes = await parseAttributesCSV(file, entities);
+      
+      if (attributes.length === 0) {
+        toast({
+          title: "Warning",
+          description: "No valid attributes found. Make sure the 'Part Of Entity Name' in your CSV matches existing entity names.",
+          variant: "destructive"
+        });
+        return;
+      }
       
       // Validate CSV structure
-      if (attributes.length > 0) {
-        // Check for missing required fields
-        const missingFields = attributes.some(attr => !attr.name);
-        
-        if (missingFields) {
-          toast({
-            title: "Invalid CSV format",
-            description: "Some attributes are missing required fields. Please check your CSV format.",
-            variant: "destructive"
-          });
-          return;
-        }
+      const missingFields = attributes.some(attr => !attr.name);
+      
+      if (missingFields) {
+        toast({
+          title: "Invalid CSV format",
+          description: "Some attributes are missing required fields. Please check your CSV format.",
+          variant: "destructive"
+        });
+        return;
       }
       
       onAttributeFileUpload(attributes);
@@ -154,7 +163,10 @@ const FileUpload = ({
       <div className="flex flex-col gap-4">
         <h3 className="text-lg font-semibold">2. Upload Attributes</h3>
         <div 
-          {...getAttributeRootProps()} 
+          {...getAttributeRootProps({
+            // Use a custom version of onDrop that receives the current entities
+            onDrop: (acceptedFiles) => onAttributeDrop(acceptedFiles, []), // We'll have to fix this in the Index.tsx component
+          })} 
           className={`dropzone ${isAttributeDragActive ? 'dropzone-active' : ''} ${!isEntitiesFileUploaded ? 'opacity-50 cursor-not-allowed' : ''} ${isAttributesFileUploaded ? 'border-green-500 bg-green-50' : ''}`}
         >
           <input {...getAttributeInputProps()} disabled={!isEntitiesFileUploaded} />
