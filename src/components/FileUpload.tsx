@@ -117,22 +117,15 @@ const FileUpload = ({
       // Read first few lines of CSV for debugging
       const reader = new FileReader();
       reader.onload = (e) => {
-        const text = e.target.result as string;
-        console.log('CSV first 500 chars:', text.substring(0, 500));
+        const text = e.target?.result as string;
+        if (text) {
+          console.log('CSV first 500 chars:', text.substring(0, 500));
+        }
       };
       reader.readAsText(file);
       
       // Pass the current entities to the parseAttributesCSV function
       const attributes = await parseAttributesCSV(file, uploadedEntities);
-      
-      if (attributes.length === 0) {
-        toast({
-          title: "Warning",
-          description: "No valid attributes found. Make sure the 'Container Entity ID' in your CSV matches existing Entity IDs from the entity file. Check console for detailed information.",
-          variant: "destructive"
-        });
-        return;
-      }
       
       // Validate CSV structure
       const missingFields = attributes.some(attr => !attr.name);
@@ -156,7 +149,7 @@ const FileUpload = ({
       console.error('Error parsing attribute CSV:', error);
       toast({
         title: "Upload failed",
-        description: error instanceof Error ? error.message : "Failed to parse attribute file. Please ensure the CSV has Attribute Name, Attribute Description, Primary Key, Container Entity ID, and Attribute System columns.",
+        description: error instanceof Error ? error.message : "Failed to parse attribute file. Please check CSV format and entity references.",
         variant: "destructive"
       });
     }
@@ -211,7 +204,7 @@ const FileUpload = ({
                 : "Drag & drop attribute.csv file, or click to select"}
           </p>
           <p className="text-xs text-center text-gray-500 mt-2">
-            CSV must contain: Attribute Name, Attribute Description, Primary Key, Container Entity ID, Attribute System
+            CSV must contain: Attribute Name, Attribute Description, Primary Key, Container Entity ID (or Part Of Entity Name), Attribute System
           </p>
         </div>
       </div>
