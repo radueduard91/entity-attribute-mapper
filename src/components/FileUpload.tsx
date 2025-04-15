@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { 
@@ -69,7 +68,6 @@ const FileUpload = ({
     
     try {
       const file = acceptedFiles[0];
-      // We'll need to fetch entities from the parent component
       const attributes = await parseAttributesCSV(file, [] as Entity[]);
       onAttributeFileUpload(attributes);
       

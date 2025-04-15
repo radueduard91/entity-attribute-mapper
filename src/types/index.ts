@@ -98,7 +98,7 @@ export interface EntityFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (values: EntityFormValues) => void;
-  initialValues?: EntityFormValues;
+  initialValues?: Partial<EntityFormValues>;
   entities: Entity[];
 }
 
@@ -106,7 +106,7 @@ export interface AttributeFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (values: AttributeFormValues) => void;
-  initialValues?: AttributeFormValues;
+  initialValues?: Partial<AttributeFormValues>;
   entities: Entity[];
 }
 

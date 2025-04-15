@@ -49,7 +49,7 @@ const EntityDiagram = ({
   onEditAttribute,
   onDeleteAttribute,
   onAddAttribute,
-  onEdgesChange,
+  onEdgesChange: updateEdgesChange, // Rename this prop to avoid conflict
   systemFilter,
   searchTerm
 }: EntityDiagramProps) => {
@@ -158,10 +158,10 @@ const EntityDiagram = ({
         ) as EntityRelationEdge[];
         
         setEdges(newEdges);
-        onEdgesChange(newEdges);
+        updateEdgesChange(newEdges);
       }
     },
-    [entities, edges, setEdges, onEdgesChange]
+    [entities, edges, setEdges, updateEdgesChange]
   );
 
   // When edges change (remove), update entity parent relationships
@@ -188,19 +188,19 @@ const EntityDiagram = ({
           return entity;
         });
         
-        // Process normal edge changes
+        // Apply edge changes before proceeding
         onEdgesChange(changes);
         
         // Update edges based on the new entity relationships
         const newEdges = edges.filter(edge => !removedEdges.includes(edge.id));
         setEdges(newEdges);
-        onEdgesChange(newEdges);
+        updateEdgesChange(newEdges);
       } else {
         // Normal edge changes (not removal)
         onEdgesChange(changes);
       }
     },
-    [entities, initialEdges, edges, setEdges, onEdgesChange]
+    [entities, initialEdges, edges, setEdges, onEdgesChange, updateEdgesChange]
   );
 
   // Update nodes and edges when filtered entities/attributes change
