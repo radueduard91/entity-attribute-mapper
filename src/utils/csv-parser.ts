@@ -4,8 +4,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { 
   Entity, 
   Attribute, 
-  EntityCSVRow, 
-  AttributeCSVRow, 
   SystemType 
 } from '@/types';
 
@@ -23,7 +21,12 @@ export const parseEntitiesCSV = (file: File): Promise<Entity[]> => {
           const entities: Entity[] = data.map(row => {
             const name = row['Entity Name'] || row['name'] || '';
             const description = row['Entity Description'] || row['description'] || '';
-            const parent = row['Entity parent'] || row['parent'] || '';
+            const externalId = row['Entity ID'] || row['id'] || '';
+            
+            // For parent, first check for parent ID, then for parent name
+            const parentId = row['Entity parent ID'] || row['parent_id'] || '';
+            const parent = row['Entity parent'] || row['parent'] || parentId;
+            
             const systemRaw = row['Entity System'] || row['system'] || '';
             
             if (!name) {
@@ -35,7 +38,8 @@ export const parseEntitiesCSV = (file: File): Promise<Entity[]> => {
               name: name.trim(),
               description,
               parent,
-              system: validateSystemType(systemRaw)
+              system: validateSystemType(systemRaw),
+              externalId
             };
           });
           
@@ -62,7 +66,7 @@ export const parseAttributesCSV = (file: File, entities: Entity[]): Promise<Attr
         try {
           const data = results.data as Record<string, string>[];
           console.log('Raw attribute data from CSV:', data);
-          console.log('Available entities for matching:', entities.map(e => e.name));
+          console.log('Available entities for matching:', entities.map(e => ({ name: e.name, externalId: e.externalId })));
           
           // Map the specific template column names to our internal format
           const attributes: Attribute[] = [];
@@ -71,28 +75,39 @@ export const parseAttributesCSV = (file: File, entities: Entity[]): Promise<Attr
             const name = row['Attribute Name'] || row['name'] || '';
             const description = row['Attribute Description'] || row['description'] || '';
             const isPrimaryKeyRaw = row['Primary Key'] || row['primary_key'] || '';
+            
+            // First try to match by Container Entity ID
+            const containerEntityId = (row['Container Entity ID'] || row['entity_id'] || '').toString().trim();
+            
+            // Also check for entity name for backward compatibility
             const entityName = (row['Part Of Entity Name'] || row['entity'] || '').trim();
+            
             const systemRaw = row['Attribute System'] || row['system'] || '';
             
-            // Find the entity ID that matches the entity name in the CSV
-            // Try case-insensitive matching if exact match fails
-            let entity = entities.find(e => e.name === entityName);
+            // Find the entity ID that matches the container entity ID in the CSV
+            let entity = entities.find(e => e.externalId === containerEntityId);
             
-            if (!entity) {
-              // Try case-insensitive matching
-              entity = entities.find(e => e.name.toLowerCase() === entityName.toLowerCase());
+            // If no match by ID, try by name (backwards compatibility)
+            if (!entity && entityName) {
+              // Try exact match
+              entity = entities.find(e => e.name === entityName);
+              
+              // If still no match, try case-insensitive matching
+              if (!entity) {
+                entity = entities.find(e => e.name.toLowerCase() === entityName.toLowerCase());
+              }
             }
             
             const entityId = entity?.id;
             
             if (!entityId) {
-              console.warn(`Entity "${entityName}" not found for attribute "${name}"`);
+              console.warn(`Entity with ID "${containerEntityId}" or name "${entityName}" not found for attribute "${name}"`);
               continue; // Skip this attribute but keep processing others
             }
             
             const isPrimaryKey = isPrimaryKeyRaw.toLowerCase() === 'yes' || 
-                               isPrimaryKeyRaw === '1' || 
-                               isPrimaryKeyRaw.toLowerCase() === 'true';
+                              isPrimaryKeyRaw === '1' || 
+                              isPrimaryKeyRaw.toLowerCase() === 'true';
             
             attributes.push({
               id: uuidv4(),
@@ -125,9 +140,10 @@ export const parseAttributesCSV = (file: File, entities: Entity[]): Promise<Attr
 
 export const entitiesToCSV = (entities: Entity[]): string => {
   const data = entities.map(entity => ({
+    'Entity ID': entity.externalId || '',
     'Entity Name': entity.name,
     'Entity Description': entity.description,
-    'Entity parent': entity.parent,
+    'Entity parent ID': entity.parent,
     'Entity System': entity.system
   }));
   
@@ -136,13 +152,14 @@ export const entitiesToCSV = (entities: Entity[]): string => {
 
 export const attributesToCSV = (attributes: Attribute[], entities: Entity[]): string => {
   const data = attributes.map(attr => {
-    const entityName = entities.find(e => e.id === attr.entityId)?.name || '';
+    const entity = entities.find(e => e.id === attr.entityId);
+    const entityExternalId = entity?.externalId || '';
     
     return {
       'Attribute Name': attr.name,
       'Attribute Description': attr.description,
       'Primary Key': attr.isPrimaryKey ? 'Yes' : 'No',
-      'Part Of Entity Name': entityName,
+      'Container Entity ID': entityExternalId,
       'Attribute System': attr.system
     };
   });

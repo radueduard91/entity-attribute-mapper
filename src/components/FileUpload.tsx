@@ -67,7 +67,7 @@ const FileUpload = ({
       console.error('Error parsing entity CSV:', error);
       toast({
         title: "Upload failed",
-        description: error instanceof Error ? error.message : "Failed to parse entity file. Please ensure the CSV has Entity Name, Entity Description, Entity System, and Entity parent columns.",
+        description: error instanceof Error ? error.message : "Failed to parse entity file. Please ensure the CSV has Entity ID, Entity Name, Entity Description, Entity System, and Entity parent ID columns.",
         variant: "destructive"
       });
     }
@@ -113,7 +113,7 @@ const FileUpload = ({
       if (attributes.length === 0) {
         toast({
           title: "Warning",
-          description: "No valid attributes found. Make sure the 'Part Of Entity Name' in your CSV matches existing entity names. Check console for details.",
+          description: "No valid attributes found. Make sure the 'Container Entity ID' in your CSV matches existing Entity IDs from the entity file. Check console for details.",
           variant: "destructive"
         });
         return;
@@ -141,7 +141,7 @@ const FileUpload = ({
       console.error('Error parsing attribute CSV:', error);
       toast({
         title: "Upload failed",
-        description: error instanceof Error ? error.message : "Failed to parse attribute file. Please ensure the CSV has Attribute Name, Attribute Description, Primary Key, Part Of Entity Name, and Attribute System columns.",
+        description: error instanceof Error ? error.message : "Failed to parse attribute file. Please ensure the CSV has Attribute Name, Attribute Description, Primary Key, Container Entity ID, and Attribute System columns.",
         variant: "destructive"
       });
     }
@@ -175,7 +175,7 @@ const FileUpload = ({
               : "Drag & drop entity.csv file, or click to select"}
           </p>
           <p className="text-xs text-center text-gray-500 mt-2">
-            CSV must contain: Entity Name, Entity Description, Entity System, Entity parent
+            CSV must contain: Entity ID, Entity Name, Entity Description, Entity System, Entity parent ID
           </p>
         </div>
       </div>
@@ -196,7 +196,7 @@ const FileUpload = ({
                 : "Drag & drop attribute.csv file, or click to select"}
           </p>
           <p className="text-xs text-center text-gray-500 mt-2">
-            CSV must contain: Attribute Name, Attribute Description, Primary Key, Part Of Entity Name, Attribute System
+            CSV must contain: Attribute Name, Attribute Description, Primary Key, Container Entity ID, Attribute System
           </p>
         </div>
       </div>

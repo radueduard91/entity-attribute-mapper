@@ -1,4 +1,3 @@
-
 import { Node, Edge } from '@xyflow/react';
 
 export interface Entity {
@@ -7,6 +6,7 @@ export interface Entity {
   description: string;
   parent: string;
   system: SystemType;
+  externalId?: string;
 }
 
 export interface Attribute {
@@ -33,6 +33,7 @@ export interface EntityCSVRow {
   description: string;
   parent: string;
   system: string;
+  externalId?: string;
 }
 
 export interface AttributeCSVRow {
@@ -40,6 +41,7 @@ export interface AttributeCSVRow {
   description: string;
   primary_key: string;
   entity: string;
+  entity_id?: string;
   system: string;
 }
 

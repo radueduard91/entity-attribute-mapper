@@ -1,4 +1,3 @@
-
 import { Edge, Node, MarkerType, Position } from '@xyflow/react';
 import { 
   Entity, 
@@ -49,8 +48,13 @@ export const generateEdges = (entities: Entity[]): EntityRelationEdge[] => {
   
   entities.forEach(entity => {
     if (entity.parent) {
-      // Find parent entity by name
-      const parentEntity = entities.find(e => e.name === entity.parent);
+      // Try to find parent entity by externalId first
+      let parentEntity = entities.find(e => e.externalId === entity.parent);
+      
+      // If not found by externalId, try by name (for backward compatibility)
+      if (!parentEntity) {
+        parentEntity = entities.find(e => e.name === entity.parent);
+      }
       
       if (parentEntity) {
         edges.push({
