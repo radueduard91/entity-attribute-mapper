@@ -179,11 +179,11 @@ export const parseAttributesCSV = (file: File, entities: Entity[]): Promise<Attr
             let errorMessage = '';
             
             if (hasContainerEntityId) {
-              errorMessage = 'No valid attributes found. Make sure the "Container Entity ID" in your CSV matches existing Entity IDs from the entity file.';
+              errorMessage = '1. No valid attributes found. Make sure the "Container Entity ID" in your CSV matches existing Entity IDs from the entity file.';
             } else if (!hasContainerEntityId) {
-              errorMessage = 'No valid attributes found. Make sure the "Part Of Entity Name" in your CSV matches the existing entity names from the entity file.';
+              errorMessage = '2. No valid attributes found. Make sure the "Part Of Entity Name" in your CSV matches the existing entity names from the entity file.';
             } else {
-              errorMessage = 'No valid attributes found. Your attributes must reference existing entities either by "Container Entity ID" or "Part Of Entity Name".';
+              errorMessage = '3. No valid attributes found. Your attributes must reference existing entities either by "Container Entity ID" or "Part Of Entity Name".';
             }
             
             reject(new Error(errorMessage));
