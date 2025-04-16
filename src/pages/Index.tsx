@@ -15,7 +15,8 @@ import EntityForm from '@/components/EntityForm';
 import AttributeForm from '@/components/AttributeForm';
 import { useToast } from '@/hooks/use-toast';
 import { entitiesToCSV, attributesToCSV } from '@/utils/csv-parser';
-import { downloadFile } from '@/utils/diagram-utils';
+import { entitiesToJSON } from '@/utils/json-parser';
+import { downloadFile, downloadJSON } from '@/utils/diagram-utils';
 
 const Index = () => {
   const { toast } = useToast();
@@ -190,8 +191,8 @@ const Index = () => {
     setEdges(updatedEdges);
   };
   
-  // Export to CSV
-  const handleExportCSV = () => {
+  // Export to CSV or JSON
+  const handleExport = () => {
     if (entities.length === 0) {
       toast({
         title: "Export failed",
@@ -201,23 +202,38 @@ const Index = () => {
       return;
     }
     
-    // Generate CSV content
-    const entitiesCSV = entitiesToCSV(entities);
-    const attributesCSV = attributesToCSV(attributes, entities);
+    // Check if the user wants to export to JSON or CSV
+    // For now, we'll add a JSON export option in addition to CSV
+    const exportJSON = true; // This could be a user preference toggle in the future
     
-    // Download files
-    downloadFile(entitiesCSV, 'entities.csv', 'text/csv');
-    downloadFile(attributesCSV, 'attributes.csv', 'text/csv');
-    
-    toast({
-      title: "Export successful",
-      description: "Entities and attributes have been exported as CSV files.",
-    });
+    if (exportJSON) {
+      // Generate JSON content and download
+      const jsonData = entitiesToJSON(entities, attributes);
+      downloadJSON(JSON.parse(jsonData), 'entities_with_hierarchy.json');
+      
+      toast({
+        title: "Export successful",
+        description: "Entities with hierarchy have been exported as a JSON file.",
+      });
+    } else {
+      // Legacy CSV export
+      const entitiesCSV = entitiesToCSV(entities);
+      const attributesCSV = attributesToCSV(attributes, entities);
+      
+      // Download files
+      downloadFile(entitiesCSV, 'entities.csv', 'text/csv');
+      downloadFile(attributesCSV, 'attributes.csv', 'text/csv');
+      
+      toast({
+        title: "Export successful",
+        description: "Entities and attributes have been exported as CSV files.",
+      });
+    }
   };
   
   // Create a custom FileUpload component that includes the current entities
   const FileUploadWithEntities = () => (
-    <FileUpload
+    <FileUpload 
       onEntityFileUpload={handleEntityFileUpload}
       onAttributeFileUpload={handleAttributeFileUpload}
       isEntitiesFileUploaded={isEntitiesFileUploaded}
@@ -240,7 +256,7 @@ const Index = () => {
           attributes={attributes}
           onAddEntity={handleAddEntity}
           onAddAttribute={() => handleAddAttribute()}
-          onExportCSV={handleExportCSV}
+          onExportCSV={handleExport}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
           systemFilter={systemFilter}

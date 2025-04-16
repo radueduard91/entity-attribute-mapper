@@ -3,7 +3,7 @@ import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { EntityNodeProps } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, PlusCircle, Key } from 'lucide-react';
+import { Edit, Trash2, PlusCircle, Key, Database } from 'lucide-react';
 
 const EntityNode = memo(({ data, isConnectable }: EntityNodeProps) => {
   const { 
@@ -27,9 +27,14 @@ const EntityNode = memo(({ data, isConnectable }: EntityNodeProps) => {
         className="w-2 h-2"
       />
       
-      <div className="entity-node-content">
+      <div className={`entity-node-content ${entity.isReferenceData ? 'reference-data' : ''}`}>
         <div className="entity-header flex justify-between items-center">
-          <span className="truncate flex-1">{entity.name}</span>
+          <div className="flex items-center gap-1">
+            {entity.isReferenceData && (
+              <Database size={12} className="text-amber-500" />
+            )}
+            <span className="truncate flex-1 font-medium">{entity.name}</span>
+          </div>
           <div className="flex gap-1">
             <Button
               variant="ghost"
@@ -56,7 +61,7 @@ const EntityNode = memo(({ data, isConnectable }: EntityNodeProps) => {
           </div>
         </div>
         
-        <div className="entity-description">
+        <div className="entity-description text-xs text-gray-600">
           {entity.description}
         </div>
         
@@ -65,9 +70,15 @@ const EntityNode = memo(({ data, isConnectable }: EntityNodeProps) => {
             attributes.map((attr) => (
               <div key={attr.id} className="entity-attribute hover:bg-gray-50 group">
                 <div className="flex justify-between items-center w-full">
-                  <div className="flex items-center">
+                  <div className="flex items-center gap-1">
                     {attr.isPrimaryKey && <Key size={10} className="entity-attribute-pk text-amber-500" />}
                     <span className="truncate">{attr.name}</span>
+                    {attr.dataType && (
+                      <span className="text-xs text-gray-500 italic">: {attr.dataType}</span>
+                    )}
+                    {attr.isNullable && (
+                      <span className="text-xs text-gray-400">(nullable)</span>
+                    )}
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button

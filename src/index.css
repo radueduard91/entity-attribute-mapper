@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -48,12 +47,11 @@
 
 /* React Flow Specific Styles */
 .react-flow__node {
-  border-radius: 5px;
+  border-radius: 4px;
   padding: 0;
   font-size: 12px;
-  color: #222;
-  text-align: left;
-  border-width: 1px;
+  color: #1a1a1a;
+  text-align: center;
 }
 
 .entity-node {
@@ -62,40 +60,52 @@
 }
 
 .entity-header {
-  font-weight: bold;
-  padding: 8px;
-  border-bottom-width: 1px;
+  font-weight: 600;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 4px;
 }
 
 .entity-description {
-  font-size: 10px;
-  padding: 4px 8px;
-  border-bottom-width: 1px;
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-bottom: 8px;
+  max-height: 40px;
+  overflow-y: auto;
 }
 
 .entity-attributes {
-  padding: 4px 0;
+  border-top: 1px solid #e5e7eb;
+  margin-top: 4px;
+  max-height: 200px;
+  overflow-y: auto;
 }
 
 .entity-attribute {
-  padding: 2px 8px;
-  display: flex;
-  align-items: center;
+  padding: 3px 6px;
+  font-size: 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.entity-attribute:last-child {
+  border-bottom: none;
 }
 
 .entity-attribute-pk {
-  font-weight: bold;
   margin-right: 4px;
 }
 
-.eam-system { @apply bg-eam-light border-eam; }
-.eam-system .entity-header { @apply bg-eam/10; }
+.eam-system {
+  border-left: 4px solid #4CAF50;
+}
 
-.ipen-system { @apply bg-ipen-light border-ipen; }
-.ipen-system .entity-header { @apply bg-ipen/10; }
+.ipen-system {
+  border-left: 4px solid #1EAEDB;
+}
 
-.both-system { @apply bg-both-light border-both; }
-.both-system .entity-header { @apply bg-both/10; }
+.both-system {
+  border-left: 4px solid #F97316;
+}
 
 .react-flow__handle {
   width: 8px;
@@ -104,11 +114,13 @@
 }
 
 .react-flow__edge-path {
-  stroke-width: 1.5;
+  stroke-width: 2;
 }
 
 .react-flow__minimap {
-  border-radius: 5px;
+  border-radius: 4px;
+  padding: 6px;
+  background-color: rgba(255, 255, 255, 0.8);
 }
 
 .entity-card {
@@ -131,4 +143,18 @@
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+.entity-node-content {
+  width: 250px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.entity-node-content.reference-data {
+  background-color: #fffbeb;
+  border-color: #fcd34d;
 }

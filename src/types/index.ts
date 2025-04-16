@@ -7,6 +7,9 @@ export interface Entity {
   parent: string;
   system: SystemType;
   externalId?: string;
+  level?: number;
+  isReferenceData?: boolean;
+  children?: string[];
 }
 
 export interface Attribute {
@@ -16,6 +19,9 @@ export interface Attribute {
   isPrimaryKey: boolean;
   entityId: string;
   system: SystemType;
+  dataType?: string;
+  isNullable?: boolean;
+  externalId?: string;
 }
 
 export type SystemType = 'EAM' | 'iPen' | 'Both';
@@ -49,6 +55,28 @@ export interface EntityRelationEdge extends Edge {
   data: {
     relationshipType: 'parent-child';
   };
+}
+
+export interface EntityHierarchyJson {
+  'Entity ID': string | number;
+  'Entity Name': string;
+  'Entity Description': string;
+  'Entity System'?: string;
+  'Reference Data'?: string;
+  attributes?: AttributeJson[];
+  parent_id?: string | null;
+  children?: string[];
+  level?: number;
+}
+
+export interface AttributeJson {
+  'Attribute ID': string | number;
+  'Attribute Name': string;
+  'Attribute Description'?: string;
+  'Primary Key'?: string;
+  'Data Type'?: string;
+  'Is Nullable'?: string;
+  'Container Entity ID'?: string | number;
 }
 
 export interface AppState {

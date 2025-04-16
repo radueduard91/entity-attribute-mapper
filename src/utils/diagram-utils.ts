@@ -6,7 +6,7 @@ import {
   EntityRelationEdge 
 } from '@/types';
 
-// Generate nodes from entities and attributes
+// Generate nodes from entities and attributes with hierarchy positioning
 export const generateNodes = (
   entities: Entity[], 
   attributes: Attribute[],
@@ -19,57 +19,82 @@ export const generateNodes = (
   console.log('Generating nodes from entities:', entities);
   console.log('Available attributes:', attributes);
   
-  return entities.map((entity, index) => {
-    // Find all attributes for this entity
-    const entityAttributes = attributes.filter(attr => attr.entityId === entity.id);
-    console.log(`Entity ${entity.name} (${entity.id}) has ${entityAttributes.length} attributes`);
-    
-    return {
-      id: entity.id,
-      type: 'entity',
-      position: { x: 100 + (index % 3) * 300, y: 100 + Math.floor(index / 3) * 200 },
-      data: {
-        entity,
-        attributes: entityAttributes,
-        onEditEntity,
-        onDeleteEntity,
-        onEditAttribute,
-        onDeleteAttribute,
-        onAddAttribute
-      },
-      className: `entity-node ${getSystemClass(entity.system)}`,
-    } as EntityNode;
+  // Organize entities by level for better layout
+  const entitiesByLevel: Record<number, Entity[]> = {};
+  entities.forEach(entity => {
+    const level = entity.level || 0;
+    if (!entitiesByLevel[level]) {
+      entitiesByLevel[level] = [];
+    }
+    entitiesByLevel[level].push(entity);
   });
+  
+  const nodes: EntityNode[] = [];
+  
+  // Position constants
+  const LEVEL_VERTICAL_SPACING = 250;
+  const HORIZONTAL_SPACING = 350;
+  const STARTING_Y = 50;
+  
+  // Generate nodes level by level
+  Object.keys(entitiesByLevel)
+    .map(Number)
+    .sort((a, b) => a - b) // Sort levels in ascending order
+    .forEach(level => {
+      const levelEntities = entitiesByLevel[level];
+      const levelY = STARTING_Y + level * LEVEL_VERTICAL_SPACING;
+      
+      // Position entities within level
+      levelEntities.forEach((entity, index) => {
+        // Find all attributes for this entity
+        const entityAttributes = attributes.filter(attr => attr.entityId === entity.id);
+        console.log(`Entity ${entity.name} (${entity.id}) has ${entityAttributes.length} attributes`);
+        
+        const entitiesCount = levelEntities.length;
+        const xPosition = 100 + (index * HORIZONTAL_SPACING);
+        
+        nodes.push({
+          id: entity.id,
+          type: 'entity',
+          position: { x: xPosition, y: levelY },
+          data: {
+            entity,
+            attributes: entityAttributes,
+            onEditEntity,
+            onDeleteEntity,
+            onEditAttribute,
+            onDeleteAttribute,
+            onAddAttribute
+          },
+          className: `entity-node ${getSystemClass(entity.system)}`,
+        } as EntityNode);
+      });
+    });
+  
+  return nodes;
 };
 
-// Generate edges from entity parent relationships
+// Generate edges from entity parent-child relationships
 export const generateEdges = (entities: Entity[]): EntityRelationEdge[] => {
   const edges: EntityRelationEdge[] = [];
   
+  // Build a map of externalId to entity id for quick lookups
+  const externalIdToEntityId = entities.reduce((map, entity) => {
+    if (entity.externalId) {
+      map[entity.externalId] = entity.id;
+    }
+    return map;
+  }, {} as Record<string, string>);
+  
   entities.forEach(entity => {
-    if (entity.parent) {
-      // Try to find parent entity by externalId first
-      let parentEntity = entities.find(e => 
-        e.externalId.toString().trim().toLowerCase() === entity.parent.toString().trim().toLowerCase()
-      );
+    // Check both the parent field and the children array
+    if (entity.parent && entity.parent !== '') {
+      const parentId = externalIdToEntityId[entity.parent];
       
-      // If not found by externalId, try by name (for backward compatibility)
-      if (!parentEntity) {
-        // Try exact match
-        parentEntity = entities.find(e => e.name === entity.parent);
-        
-        // If still no match, try case-insensitive match
-        if (!parentEntity) {
-          parentEntity = entities.find(e => 
-            e.name.toLowerCase() === entity.parent.toLowerCase()
-          );
-        }
-      }
-      
-      if (parentEntity) {
+      if (parentId) {
         edges.push({
-          id: `e-${parentEntity.id}-${entity.id}`,
-          source: parentEntity.id,
+          id: `e-${parentId}-${entity.id}`,
+          source: parentId,
           target: entity.id,
           type: 'smoothstep',
           markerEnd: {
@@ -83,8 +108,46 @@ export const generateEdges = (entities: Entity[]): EntityRelationEdge[] => {
           }
         } as EntityRelationEdge);
       } else {
-        console.warn(`Could not find parent entity "${entity.parent}" for entity "${entity.name}"`);
+        console.warn(`Could not find parent entity with ID "${entity.parent}" for entity "${entity.name}"`);
       }
+    }
+    
+    // Add edges based on children array if present
+    if (entity.children && entity.children.length > 0) {
+      entity.children.forEach(childId => {
+        // Find the internal ID for this child's external ID
+        const childEntityId = externalIdToEntityId[childId];
+        
+        if (childEntityId) {
+          // Check if this edge already exists (avoid duplicates)
+          const edgeExists = edges.some(edge => 
+            edge.source === entity.id && edge.target === childEntityId
+          );
+          
+          if (!edgeExists) {
+            // Find the child entity to get its system for styling
+            const childEntity = entities.find(e => e.id === childEntityId);
+            
+            edges.push({
+              id: `e-${entity.id}-${childEntityId}`,
+              source: entity.id,
+              target: childEntityId,
+              type: 'smoothstep',
+              markerEnd: {
+                type: MarkerType.ArrowClosed,
+                width: 15,
+                height: 15,
+              },
+              style: { stroke: getSystemColor(childEntity?.system || 'EAM') },
+              data: {
+                relationshipType: 'parent-child'
+              }
+            } as EntityRelationEdge);
+          }
+        } else {
+          console.warn(`Could not find child entity with external ID "${childId}" for entity "${entity.name}"`);
+        }
+      });
     }
   });
   
@@ -122,4 +185,10 @@ export const downloadFile = (content: string, fileName: string, contentType: str
   a.click();
   
   URL.revokeObjectURL(url);
+};
+
+// New helper function to download JSON data
+export const downloadJSON = (data: any, fileName: string): void => {
+  const jsonString = JSON.stringify(data, null, 2);
+  downloadFile(jsonString, fileName, 'application/json');
 };
