@@ -75,6 +75,13 @@ export const parseEntitiesWithHierarchyJSON = (file: File): Promise<{ entities: 
         
         console.log('Processed entities:', entities);
         console.log('Processed attributes:', attributes);
+        console.log('Number of attributes loaded:', attributes.length);
+        
+        // Debug output to check entity-attribute relationships
+        entities.forEach(entity => {
+          const entityAttrs = attributes.filter(attr => attr.entityId === entity.id);
+          console.log(`Entity ${entity.name} (${entity.id}) has ${entityAttrs.length} attributes attached`);
+        });
         
         resolve({ entities, attributes });
       } catch (error) {

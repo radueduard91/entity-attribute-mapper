@@ -34,6 +34,9 @@ const EntityNode = memo(({ data, isConnectable }: EntityNodeProps) => {
               <Database size={12} className="text-amber-500" />
             )}
             <span className="truncate flex-1 font-medium">{entity.name}</span>
+            <span className="text-xs bg-gray-100 px-1 rounded text-gray-600">
+              {entity.system}
+            </span>
           </div>
           <div className="flex gap-1">
             <Button

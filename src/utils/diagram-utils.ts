@@ -1,4 +1,5 @@
-import { Edge, Node, MarkerType, Position } from '@xyflow/react';
+
+import { Edge, Node, MarkerType } from '@xyflow/react';
 import { 
   Entity, 
   Attribute, 
@@ -18,6 +19,7 @@ export const generateNodes = (
 ): EntityNode[] => {
   console.log('Generating nodes from entities:', entities);
   console.log('Available attributes:', attributes);
+  console.log('Total attributes available:', attributes.length);
   
   // Organize entities by level for better layout
   const entitiesByLevel: Record<number, Entity[]> = {};

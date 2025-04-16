@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { 
@@ -14,9 +15,8 @@ import FileUpload from '@/components/FileUpload';
 import EntityForm from '@/components/EntityForm';
 import AttributeForm from '@/components/AttributeForm';
 import { useToast } from '@/hooks/use-toast';
-import { entitiesToCSV, attributesToCSV } from '@/utils/csv-parser';
 import { entitiesToJSON } from '@/utils/json-parser';
-import { downloadFile, downloadJSON } from '@/utils/diagram-utils';
+import { downloadJSON } from '@/utils/diagram-utils';
 
 const Index = () => {
   const { toast } = useToast();
@@ -172,18 +172,15 @@ const Index = () => {
   
   const handleAttributeFileUpload = (uploadedAttributes: Attribute[]) => {
     console.log('Attributes uploaded:', uploadedAttributes);
+    console.log('Total uploaded attributes:', uploadedAttributes.length);
     
-    // Ensure the uploaded attributes have valid entity IDs
-    const validAttributes = uploadedAttributes.filter(attr => {
-      const entityExists = entities.some(entity => entity.id === attr.entityId);
-      if (!entityExists) {
-        console.warn(`Skipping attribute "${attr.name}" - entity not found`);
-      }
-      return entityExists;
-    });
-    
-    setAttributes(validAttributes);
+    setAttributes(uploadedAttributes);
     setIsAttributesFileUploaded(true);
+    
+    // Debug: Check entity-attribute relationships
+    uploadedAttributes.forEach(attr => {
+      console.log(`Attribute ${attr.name} is linked to entity ID: ${attr.entityId}`);
+    });
   };
   
   // Edge changes handler
@@ -191,7 +188,7 @@ const Index = () => {
     setEdges(updatedEdges);
   };
   
-  // Export to CSV or JSON
+  // Export to JSON
   const handleExport = () => {
     if (entities.length === 0) {
       toast({
@@ -202,44 +199,15 @@ const Index = () => {
       return;
     }
     
-    // Check if the user wants to export to JSON or CSV
-    // For now, we'll add a JSON export option in addition to CSV
-    const exportJSON = true; // This could be a user preference toggle in the future
+    // Generate JSON content and download
+    const jsonData = entitiesToJSON(entities, attributes);
+    downloadJSON(JSON.parse(jsonData), 'entities_with_hierarchy.json');
     
-    if (exportJSON) {
-      // Generate JSON content and download
-      const jsonData = entitiesToJSON(entities, attributes);
-      downloadJSON(JSON.parse(jsonData), 'entities_with_hierarchy.json');
-      
-      toast({
-        title: "Export successful",
-        description: "Entities with hierarchy have been exported as a JSON file.",
-      });
-    } else {
-      // Legacy CSV export
-      const entitiesCSV = entitiesToCSV(entities);
-      const attributesCSV = attributesToCSV(attributes, entities);
-      
-      // Download files
-      downloadFile(entitiesCSV, 'entities.csv', 'text/csv');
-      downloadFile(attributesCSV, 'attributes.csv', 'text/csv');
-      
-      toast({
-        title: "Export successful",
-        description: "Entities and attributes have been exported as CSV files.",
-      });
-    }
+    toast({
+      title: "Export successful",
+      description: "Entities with hierarchy have been exported as a JSON file.",
+    });
   };
-  
-  // Create a custom FileUpload component that includes the current entities
-  const FileUploadWithEntities = () => (
-    <FileUpload 
-      onEntityFileUpload={handleEntityFileUpload}
-      onAttributeFileUpload={handleAttributeFileUpload}
-      isEntitiesFileUploaded={isEntitiesFileUploaded}
-      isAttributesFileUploaded={isAttributesFileUploaded}
-    />
-  );
   
   return (
     <div className="min-h-screen flex flex-col">
@@ -266,7 +234,12 @@ const Index = () => {
         {/* Main content area */}
         <div className="flex-1 flex flex-col h-[calc(100vh-4rem)]">
           {!isEntitiesFileUploaded || !isAttributesFileUploaded ? (
-            <FileUploadWithEntities />
+            <FileUpload 
+              onEntityFileUpload={handleEntityFileUpload}
+              onAttributeFileUpload={handleAttributeFileUpload}
+              isEntitiesFileUploaded={isEntitiesFileUploaded}
+              isAttributesFileUploaded={isAttributesFileUploaded}
+            />
           ) : (
             <EntityDiagram
               entities={entities}
