@@ -5,7 +5,8 @@ import {
   Entity, 
   Attribute 
 } from '@/types';
-import { parseEntitiesCSV, parseAttributesCSV, parseEntitiesWithHierarchyJSON } from '@/utils/csv-parser';
+import { parseEntitiesCSV, parseAttributesCSV } from '@/utils/csv-parser';
+import { parseEntitiesWithHierarchyJSON } from '@/utils/json-parser';
 import { Button } from '@/components/ui/button';
 import { UploadCloud } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
